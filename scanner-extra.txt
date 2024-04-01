@@ -1,0 +1,145 @@
+/** 
+ * author: Brooke Pacheco
+ * course: CSc 453
+ * desciption: TODO
+*/
+
+#include "scanner.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+FILE *file;
+char code[1096]; // Store the source code from stdin (excluding whitespaces and special characters)
+char *lexeme; /* to communicate with parser */
+int lval;      /* to communicate with parser */
+
+// Gets each character from the code
+// char get_character() {
+//     char buf[1096]; // Store the source code from stdin 
+
+//     // index of code variable
+//     int i = 0;
+
+//     // Iterate through each line
+//     while (fgets(buf, sizeof(buf), file) != NULL) {
+//         // Iterate through each character
+//         for (int j = 0; buf[j] != '\0'; j++) {
+//             // TODO Check if there is a comment
+
+//             // Check for unwanted characters
+//             if (buf[j] != '\b' && buf[j] != '\n' && buf[j] != '\t') {
+//                 // Add the character to global code 
+//                 code[i] = buf[j];
+
+//                 // Print code to check character was added
+//                 printf("%c", code[i]);
+
+//                 // Incement index in global code
+//                 i++;
+//             }
+
+//         }
+
+//         // Put a null pointer at the end of the array of characters in code
+//         code[strlen(code) - 1] = '\0';
+//     }
+//     return code[0];
+// }
+
+int main() {
+    // Current token from the source code
+    int token;
+
+    // Get the first token from the file 
+    token = get_token();
+
+    // Loop to get and print tokens until end of file
+    while (token != ENDFILE) {
+        switch (token) {
+            // keywords
+            case kwINT:
+                printf("kwINT : %s\n", lexeme);
+            case kwIF:
+                printf("kwIF : %s\n", lexeme);
+            case kwELSE:
+                printf("kwELSE : %s\n", lexeme);
+            case kwWHILE:
+                printf("kwWHILE : %s\n", lexeme);
+            case kwRETURN:
+                printf("kwRETURN : %s\n", lexeme);
+
+            // Identifiers
+            case ID:
+                printf("ID : %s\n", lexeme);
+
+            // Constants
+            case INTCON:
+                printf("INTCON : %s\n", lexeme);
+
+            // Operators
+            case opADD: 
+                printf("opADD : %s\n", lexeme);
+            case opSUB: 
+                printf("opSUB : %s\n", lexeme);
+            case opMUL:
+                printf("opMUL : %s\n", lexeme);
+            case opDIV: 
+                printf("opDIV : %s\n", lexeme);
+            case opEQ:  
+                printf("opEQ : %s\n", lexeme);
+            case opASSG:
+                printf("opASSG : %s\n", lexeme);
+            case opNE:  
+                printf("opNE : %s\n", lexeme);
+            case opGT:  
+                printf("opGT : %s\n", lexeme);
+            case opGE: 
+                printf("opGE : %s\n", lexeme);
+            case opLT:  
+                printf("opLT : %s\n", lexeme);
+            case opAND: 
+                printf("opAND : %s\n", lexeme);
+            case opOR: 
+                printf("opOR : %s\n", lexeme);
+
+            // Punctuation 
+            case LPAREN:
+                printf("LPAREN : %s\n", lexeme);
+                break;
+            case RPAREN: 
+                printf("RPAREN : %s\n", lexeme);
+            case LBRACE:  
+                printf("LBRACE : %s\n", lexeme);
+            case RBRACE:
+                printf("RBRACE : %s\n", lexeme);
+            case SEMI:  
+                printf("SEMI : %s\n", lexeme);
+            case COMMA:  
+                printf("COMMA : %s\n", lexeme);
+
+            // Default or end of file
+            case UNDEF:
+                printf("Something went wrong\n");
+                break;
+            case ENDFILE:
+                break;
+            default:
+                printf("Unhandled token\n");
+                break;
+        }
+
+        // Free memory allocated in get_token()
+        free(lexeme); 
+
+        // Get the next token
+        token = get_token();
+    }
+
+    // Close the file
+    fclose(file);
+
+    return 0;
+}
+
+

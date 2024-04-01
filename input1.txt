@@ -1,0 +1,24 @@
+int x, y, u, v, w;
+
+int g(int v) {
+    int p, q;
+    p = x;
+    println(x);
+    q = p;
+    v = q;
+    println(v);
+}
+
+int f(int u) {
+    int v;
+    v = u;
+    x = v;
+    g(v);
+    y = x;
+    g(y);
+}
+
+int main() {
+    x = 12345;
+    f(x);
+}
