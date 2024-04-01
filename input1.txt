@@ -1,21 +1,19 @@
-int x, y, u, v, w;
+int x, y, z, u, v, w;
 
-int g(int v) {
-    int p, q;
-    p = x;
+int g() {
+    y = x;
     println(x);
-    q = p;
-    v = q;
-    println(v);
+    println(y);
 }
 
-int f(int u) {
-    int v;
-    v = u;
-    x = v;
-    g(v);
-    y = x;
-    g(y);
+int f(int w) {
+    y = w;
+    x = y;
+    g();
+    z = y;
+    u = z;
+    x = u;
+    g();
 }
 
 int main() {

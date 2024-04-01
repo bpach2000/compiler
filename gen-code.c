@@ -52,6 +52,7 @@ void code_instr(ASTnode* curr, Instr* new) {
 }
 
 void codeGen_expr(ASTnode *e) {
+    //printf("NAME *********** %s\n", e->name);
     switch (e->ntype) {
         case INTCONST:
             e->place = newtemp(e->ntype);
@@ -181,12 +182,15 @@ void params(ASTnode* node1, ASTnode* node2) {
 void codeGen_stmt(ASTnode *s) {
     switch (s->ntype) {
         case FUNC_CALL:
+            //printf("THIS FUNCTION ********** %s\n", s->name);
             s->place = newtemp(INTCONST);
 
-            // Generate expression lists on all of the params 
+            // Generate expression lists on all of the params, if there are parameters
             ASTnode* temp = s->child0;
-            codeGen_expr(temp);  
-            code_concat(s, temp);
+            if (temp != NULL) {
+                codeGen_expr(temp);  
+                code_concat(s, temp);
+            }
 
             arg_count = 0;
             if (s->child0 != NULL) {
@@ -429,7 +433,8 @@ void codeGen_func_def(ASTnode *e) {
         current = current->next;
     }
 
-    //print_symbol_table(local_table, "Local");
+    //print_symbol_table(local_table, "LOCAL");
+    //print_symbol_table(global_table, "GLOBAL");
 
     // Print out the order of 3 address instructions
     //printf("_____________ FINAL OUTPUT _______________\n");
