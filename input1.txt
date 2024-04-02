@@ -1,22 +1,9 @@
-int x, y, z, u, v, w;
-
-int g() {
-    y = x;
+int f(int x, int y, int z) {
     println(x);
     println(y);
-}
-
-int f(int w) {
-    y = w;
-    x = y;
-    g();
-    z = y;
-    u = z;
-    x = u;
-    g();
+    println(z);
 }
 
 int main() {
-    x = 12345;
-    f(x);
+    f(12345, 23456, 34567);
 }

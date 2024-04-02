@@ -326,7 +326,7 @@ void gen_mips(Instr* instruction) {
         case GC_ENTER:
             // loop through the local table - params and local vars
             // multiply by -4
-            int num_vars = instruction->src1->val.stptr->args + instruction->src1->val.stptr->local_var_num;
+            int num_vars = instruction->src1->val.stptr->args + count_table(local_table);
             //printf("%d %d\n", instruction->src1->val.stptr->args, instruction->src1->val.stptr->local_var_num);
             int val = num_vars * 4 + 8; 
             printf("\n#enter instruction %s\n", instruction->src1->val.stptr->name);
@@ -424,10 +424,14 @@ void codeGen_func_def(ASTnode *e) {
 
     // Iterate through and assign offsets to local table
     SymTable* current = local_table;
+    //printf("********* e->name %s and e->args %d\n", e->st_ref->name, e->st_ref->args);
+    //int num_of_local_offset_vars = count_table(local_table) - e->st_ref->args;
+    //printf("#############3 %d\n", num_of_local_offset_vars);
     int offset = -4;
     while (current != NULL) {
         if (current->offset_formals == 0) {
             current->offset_local_var = offset;
+            //num_of_local_offset_vars--;
             offset = offset - 4;
         }
         current = current->next;
@@ -568,34 +572,6 @@ SymTable* newtemp(int t)  {
 
     // Add temp to local table
     return symtbl_add(name, 0, 0, 0, 0, 0, 0);
-
-    // if (local_table == NULL) {
-    //     local_table = malloc(sizeof(SymTable));
-    //     strcpy(local_table->name, name);
-    //     local_table->next = NULL;
-    //     return local_table;
-    // } else {
-    //     SymTable* ntmp = malloc(sizeof(SymTable));
-    //     if (ntmp == NULL) {
-    //         fprintf(stderr, "ERROR: Failed to allocate memory.\n");
-    //         exit(1);
-    //     }
-
-    //     strcpy(ntmp->name, name);
-    //     ntmp->next = NULL;
-
-    //     // Traverse to the end of the linked list
-    //     SymTable* current = local_table;
-    //     while (current->next != NULL) {
-    //         current = current->next;
-    //     }
-
-    //     print_symbol_table(ntmp, "temp");
-    //     print_symbol_table(local_table, "local");
-
-    //     return ntmp;
-    // }
-    // return NULL;
 }
 
 // create a new instruction, fill in the arguments
