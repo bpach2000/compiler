@@ -74,7 +74,7 @@ ASTnode* expr_list() {
     return ast;
 }
 
-ASTnode* bool_exp() {
+ASTnode*  bool_exp() {
     //printf("bool_exp\n");
     ASTnode* left = arith_exp();
     ASTnode* operation = relop();
@@ -284,7 +284,6 @@ ASTnode* return_stmt() {
     if (curr_tok == SEMI) {
         match(SEMI);
     } else {
-        //ast->child0 = arith_exp();
         ast->child0 = arith_exp();
         match(SEMI);
     }
@@ -429,8 +428,6 @@ void func_defn() {
 
     // Generate code
     if (gen_code_flag) {
-        //print_symbol_table(local_table, "Local");
-        //print_symbol_table(global_table, "Global");
         gen_code(ast);
     }
 
@@ -443,13 +440,13 @@ void func_defn() {
 void var_decl_prog() {
     if (curr_tok == SEMI) { // global scope
         if (gen_code_flag) {
-            printf("#GLOBAL _%s\n.data\n _%s: .space 4\n\n", prev, prev);
+            printf("_%s: .space 4\n", prev);
         }
         symtbl_add(prev, 0, 0, 0, 0, 0, 1);
         match(SEMI);
     } else if (curr_tok == COMMA) { // global
         if (gen_code_flag) {
-            printf("#GLOBAL _%s\n.data\n _%s: .space 4\n\n", prev, prev);
+            printf("_%s: .space 4\n", prev);
         }
         symtbl_add(prev, 0, 0, 0, 0, 0, 1); 
         match(COMMA);
@@ -474,6 +471,7 @@ void prog() {
         
         if (curr_tok == SEMI || curr_tok == COMMA || curr_tok == opASSG) { // global scope
             // check variable
+            printf(".data\n");
             var_decl_prog();
         } else {
             // check function

@@ -1,9 +1,40 @@
-int f(int x, int y, int z) {
-    println(x);
-    println(y);
-    println(z);
+int g(int x) {
+  int y, z, w;
+  {
+    y = x;
+    {
+      z = y;
+      {
+        println(z);
+	      w = z;
+      }
+      println(w);
+    }
+  }
+}
+
+int f(int u) {
+  int x, y;
+  {
+    x = u;
+    g(x);
+    {
+      y = x;
+      g(y);
+    }
+  }  
 }
 
 int main() {
-    f(12345, 23456, 34567);
+  int x, y, z;
+  {
+    {
+      x = 12345;
+      y = 23456;
+    }
+    {
+      f(x);
+      f(y);
+    }
+  }
 }

@@ -1,5 +1,14 @@
+int x, u;
+
 int main() {
-    int x;
-    x = 5;
-    print(x, 123);
+    int y, v;
+
+    x = 1;
+    y = 0;
+    u = 12345;
+    v = 23456;
+    if (x > y) 
+        println(u);
+    else
+        println(v);
 }

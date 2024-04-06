@@ -10,6 +10,9 @@
 int tmp_num = 0;
 int arg_count = 0;
 static int label_num = 0;
+char* nodeTypeToString(NodeType type);
+void post_order_traversal(ASTnode *root);
+void codeGen_bool(ASTnode *e, Instr *trueDst, Instr *falseDst);
 
 void print_line() {
     printf(".align 2\n");
@@ -30,9 +33,13 @@ void print_line() {
 
 // Concatonate code with parent and child
 void code_concat(ASTnode* node1, ASTnode* node2) {
+    // print_symbol_table(local_table, "Local");
+    // print_symbol_table(global_table, "Global");
+    //printf("node1 %s %d and node2 %s %s\n", node1->name, node1->num, node2->name, node2->st_ref->name);
     if (node1->code_tl != NULL) {
+        //printf("Still got inside of here\n");
         node1->code_tl->next = node2->code_hd;
-        node1->code_tl = node2->code_tl; 
+        node1->code_tl = node2->code_tl;
     } else {
         node1->code_hd = node2->code_hd;
         node1->code_tl = node2->code_tl;
@@ -155,20 +162,68 @@ void params(ASTnode* node1, ASTnode* node2) {
         arg->operand_type = OP_SYM;
         arg->val.stptr = node2->child0->place;
 
-        // Print offsets for the paramters
-        //printf("Offest %d, for %s\n", arg->val.stptr->offset_formals, arg->val.stptr->name);
-
-        // Add offsets to temps in symbol table
-        // if (arg->val.stptr->offset_formals == 0) {
-        //     int offset = -8 - 4 * (arg_count - temp);
-        //     arg->val.stptr->offset_formals = offset;
-        //     //printf("Offest %d, temp %d, %s\n", offset, temp, arg->val.stptr->name);
-        // } 
-
         Instr* new = newinstr(GC_PARAM, arg, NULL, NULL);
         code_instr(node1, new);
         //printInstr(new);
     }
+}
+
+void codeGen_bool(ASTnode *e, Instr *trueDst, Instr *falseDst) {
+    codeGen_expr(e->child0);
+    codeGen_expr(e->child1);
+
+    Operand* left = (Operand*) malloc(sizeof(Operand));
+    left->operand_type = OP_SYM;
+    left->val.stptr = e->child0->place;
+
+    Operand* right = (Operand*) malloc(sizeof(Operand));
+    right->operand_type = OP_SYM;
+    right->val.stptr = e->child1->place;
+
+    code_concat(e, e->child0);
+    code_concat(e, e->child1);
+
+    Operand* operand_trueDst = (Operand*) malloc(sizeof(Operand));
+    operand_trueDst->operand_type = OP_INTCONST;
+    operand_trueDst->val.iconst = trueDst->src1->val.iconst;
+
+    Operand* operand_falseDst = (Operand*) malloc(sizeof(Operand));
+    operand_falseDst->operand_type = OP_INTCONST;
+    operand_falseDst->val.iconst = falseDst->src1->val.iconst;
+
+    // TODO need to do these later along with while and if
+    // EQ,               /* == */
+    // NE,               /* != */
+    // LE,               /* <= */
+    // LT,               /* < */
+    // GE,               /* >= */
+    // GT,               /* > */
+
+    if (e->ntype == EQ) {
+        Instr* true_instr = newinstr(IF_EQ, left, right, operand_trueDst);
+        code_instr(e, true_instr);
+    }
+
+    if (e->ntype == NE) {
+        Instr* true_instr = newinstr(IF_NE, left, right, operand_trueDst);
+        code_instr(e, true_instr);
+    }
+
+    if (e->ntype == LT) {
+        Instr* true_instr = newinstr(IF_LT, left, right, operand_trueDst);
+        code_instr(e, true_instr);
+    }
+
+    if (e->ntype == GT) {
+        Instr* true_instr = newinstr(IF_GT, left, right, operand_trueDst);
+        code_instr(e, true_instr);
+    }
+
+
+    //Instr* true_instr = newinstr(GC_IF, left, right, operand_trueDst);
+    //code_instr(e, true_instr);
+    Instr* false_instr = newinstr(GC_GOTO, NULL, NULL, operand_falseDst);
+    code_instr(e, false_instr);
 }
 
 // ------ generate three address code for statements -----
@@ -182,7 +237,6 @@ void params(ASTnode* node1, ASTnode* node2) {
 void codeGen_stmt(ASTnode *s) {
     switch (s->ntype) {
         case FUNC_CALL:
-            //printf("THIS FUNCTION ********** %s\n", s->name);
             s->place = newtemp(INTCONST);
 
             // Generate expression lists on all of the params, if there are parameters
@@ -210,17 +264,10 @@ void codeGen_stmt(ASTnode *s) {
 
             Instr* retrieve = newinstr(GC_RETRIEVE, NULL, NULL, k);
             code_instr(s, retrieve);
-
-            //printInstr(new);
             break;
         case ASSG: 
             codeGen_expr(s->child0);  // LHS
             codeGen_expr(s->child1);  // RHS
-            
-            // Check if the assigned value is a global variable
-            // if (get_symtbl(global_table, s->child1->name, 0)) {
-            //     printf("found it\n");
-            // }
 
             Operand* left = (Operand*) malloc(sizeof(Operand));
             left->operand_type = OP_SYM;
@@ -235,30 +282,83 @@ void codeGen_stmt(ASTnode *s) {
 
             Instr* curr = newinstr(GC_ASSG, left, NULL, right);
             code_instr(s, curr);
-            
-            //printInstr(curr);
             break;
         case STMT_LIST:
             if (s->child0 != NULL) {
                 codeGen_stmt(s->child0);  // LHS
                 code_concat(s, s->child0);
-            }
-
+            } 
+ 
             if (s->child1 != NULL) {
                 codeGen_stmt(s->child1);  // RHS
                 code_concat(s, s->child1);
             }
             break;
-
-        // For latter
         case DUMMY:
             break;
         case IF:
+            // Create new label
+            Instr* then_label = newlabel();
+            Instr* else_label = newlabel();
+            Instr* after_label = newlabel();
+
+            Operand* operand_after_label = (Operand*) malloc(sizeof(Operand));
+            operand_after_label->operand_type = OP_INTCONST;
+            operand_after_label->val.iconst = after_label->src1->val.iconst;
+
+            // Generate code for the statements
+            codeGen_bool(s->child0, then_label, else_label);
+            codeGen_stmt(s->child1);
+            codeGen_stmt(s->child2);
+
+            code_concat(s, s->child0);
+            code_instr(s, then_label);
+            code_concat(s, s->child1);
+
+            Instr* new_instr = newinstr(GC_GOTO, NULL, NULL, operand_after_label);
+            code_instr(s, new_instr);
+            code_instr(s, else_label);
+            code_concat(s, s->child2);
+            code_instr(s, after_label);
             break;
         case WHILE:
+            // Create new label
+            Instr* top_label = newlabel();
+            Instr* body_label = newlabel();
+            Instr* after_while_label = newlabel();
+
+            codeGen_bool(s->child0, body_label, after_while_label);
+            codeGen_stmt(s->child1);
+            
+            code_instr(s, top_label);
+            code_concat(s, s->child0);
+            code_instr(s, body_label);
+            code_concat(s, s->child1);
+
+            Operand* operand_top_label = (Operand*) malloc(sizeof(Operand));
+            operand_top_label->operand_type = OP_INTCONST;
+            operand_top_label->val.iconst = top_label->src1->val.iconst;
+
+            Instr* new_instr_while = newinstr(GC_GOTO, NULL, NULL, operand_top_label);
+            code_instr(s, new_instr_while);
+
+            code_instr(s, after_while_label);
+
             break;
         case RETURN:
-            break;
+            if (s->child0 != NULL) {
+                codeGen_expr(s->child0); 
+
+                Operand* return_val = (Operand*) malloc(sizeof(Operand));
+                return_val->operand_type = OP_SYM;
+                return_val->val.stptr = s->child0->place;
+
+                code_concat(s, s->child0);
+
+                Instr* return_instr = newinstr(RETURN, return_val, NULL, NULL);
+                code_instr(s, return_instr);
+            }
+            break; 
         default:
             break;
     }
@@ -318,10 +418,80 @@ void gen_mips(Instr* instruction) {
             }
             break;
         case GC_GOTO:
+            printf("    # GOTO Label %d\n", instruction->dst->val.iconst);
+            printf("    j __L%d\n\n", instruction->dst->val.iconst);
             break;
-        case GC_IF:
+        case IF_EQ:
+            printf("    # IF_EQ x > y : GOTO LABEL %d\n", instruction->dst->val.iconst);
+
+            if (instruction->src1->val.stptr->is_global == 1) {
+                printf("    lw  $t0, _%s\n", instruction->src1->val.stptr->name);
+            } else {
+                printf("    lw  $t0, 0($fp)\n");
+            }
+
+            if (instruction->src2->val.stptr->is_global == 1) {
+                printf("    lw  $t1, _%s", instruction->src2->val.stptr->name);
+            } else {
+                printf("    lw  $t1, %d($fp)\n", instruction->src2->val.stptr->offset_local_var);
+            }
+
+            printf("    beq $t0, $t1, __L%d\n\n", instruction->dst->val.iconst);
+            break;
+        case IF_GT:
+            printf("    # IF_GT x > y : GOTO LABEL %d\n", instruction->dst->val.iconst);
+            
+            if (instruction->src1->val.stptr->is_global == 1) {
+                printf("    lw  $t0, _%s\n", instruction->src1->val.stptr->name);
+            } else {
+                printf("    lw  $t0, 0($fp)\n");
+            }
+
+            if (instruction->src2->val.stptr->is_global == 1) {
+                printf("    lw  $t1, _%s", instruction->src2->val.stptr->name);
+            } else {
+                printf("    lw  $t1, %d($fp)\n", instruction->src2->val.stptr->offset_local_var);
+            }
+
+            printf("    bgt $t0, $t1, __L%d\n\n", instruction->dst->val.iconst);
+            break;
+        case IF_LT:
+            printf("    # IF_LT x > y : GOTO LABEL %d\n", instruction->dst->val.iconst);
+
+            if (instruction->src1->val.stptr->is_global == 1) {
+                printf("    lw  $t0, _%s\n", instruction->src1->val.stptr->name);
+            } else {
+                printf("    lw  $t0, 0($fp)\n");
+            }
+
+            if (instruction->src2->val.stptr->is_global == 1) {
+                printf("    lw  $t1, _%s", instruction->src2->val.stptr->name);
+            } else {
+                printf("    lw  $t1, %d($fp)\n", instruction->src2->val.stptr->offset_local_var);
+            }
+
+            printf("    blt $t0, $t1, __L%d\n\n", instruction->dst->val.iconst);
+            break;
+        case IF_NE:
+            printf("    # IF_NE x > y : GOTO LABEL %d\n", instruction->dst->val.iconst);
+            
+            if (instruction->src1->val.stptr->is_global == 1) {
+                printf("    lw  $t0, _%s\n", instruction->src1->val.stptr->name);
+            } else {
+                printf("    lw  $t0, 0($fp)\n");
+            }
+
+            if (instruction->src2->val.stptr->is_global == 1) {
+                printf("    lw  $t1, _%s", instruction->src2->val.stptr->name);
+            } else {
+                printf("    lw  $t1, %d($fp)\n", instruction->src2->val.stptr->offset_local_var);
+            }
+
+            printf("    bne $t0, $t1, __L%d\n\n", instruction->dst->val.iconst);
             break;
         case GC_LABEL:
+            printf("# Label %d\n", instruction->src1->val.iconst);
+            printf("__L%d:\n\n", instruction->src1->val.iconst);
             break;
         case GC_ENTER:
             // loop through the local table - params and local vars
@@ -367,7 +537,6 @@ void gen_mips(Instr* instruction) {
 
             int num = instruction->src2->val.iconst * 4;
             printf("    la $sp, %d($sp)\n\n", num);
-            //printf("    la $sp,%d($sp)\n\n", num_params);
             break;
         case GC_RETURN_VOID:
             printf("    # RETURN_VOID\n");
@@ -378,6 +547,21 @@ void gen_mips(Instr* instruction) {
 	        printf("    jr $ra          # return\n\n");
             break;
         case GC_RETURN:
+            printf("    # RETURN %s\n", instruction->src1->val.stptr->name);
+            if (instruction->src1->val.stptr->is_global == 1) {
+                printf("    lw $v0, _%s\n", instruction->src1->val.stptr->name); // This is the instruction that changes
+            } else {
+                if (instruction->src1->val.stptr->offset_formals == 0) {
+                    printf("    lw $v0, %d($fp)\n", instruction->src1->val.stptr->offset_local_var);
+                } else {
+                    printf("    lw $v0, %d($fp)\n", instruction->src1->val.stptr->offset_formals);
+                }
+            }
+	        printf("    la $sp, 0($fp)  # deallocate locals\n");
+	        printf("    lw $ra, 0($sp)  # restore return address\n");
+	        printf("    lw $fp, 4($sp)  # restore frame pointer\n");
+	        printf("    la $sp, 8($sp)  # restore stack pointer\n");
+	        printf("    jr $ra          # return\n\n");
             break;
         case GC_RETRIEVE:
             break;
@@ -395,8 +579,6 @@ void codeGen_func_def(ASTnode *e) {
     Instr* enter = newinstr(GC_ENTER, arg, NULL, NULL);
 
     code_instr(e, enter);
-
-    // Iterate through the statement list
     codeGen_stmt(e->child0);
 
     // Concatenate AST node's code list with the child node's code list
@@ -424,21 +606,17 @@ void codeGen_func_def(ASTnode *e) {
 
     // Iterate through and assign offsets to local table
     SymTable* current = local_table;
-    //printf("********* e->name %s and e->args %d\n", e->st_ref->name, e->st_ref->args);
-    //int num_of_local_offset_vars = count_table(local_table) - e->st_ref->args;
-    //printf("#############3 %d\n", num_of_local_offset_vars);
     int offset = -4;
     while (current != NULL) {
         if (current->offset_formals == 0) {
             current->offset_local_var = offset;
-            //num_of_local_offset_vars--;
             offset = offset - 4;
         }
         current = current->next;
     }
 
-    //print_symbol_table(local_table, "LOCAL");
-    //print_symbol_table(global_table, "GLOBAL");
+    // print_symbol_table(local_table, "LOCAL");
+    // print_symbol_table(global_table, "GLOBAL");
 
     // Print out the order of 3 address instructions
     //printf("_____________ FINAL OUTPUT _______________\n");
@@ -588,10 +766,12 @@ Instr* newinstr(Operator op, Operand* arg1, Operand* arg2, Operand* dst) {
 }
 
 // return a new label instruction
-// Instr *newlabel() {  
-void newlabel() {
+Instr* newlabel() {
     label_num++;
-    //return newinstr(LABEL, label_num++);
+    Operand* label = (Operand*) malloc(sizeof(Operand));
+    label->operand_type = OP_INTCONST;
+    label->val.iconst = label_num;
+    return newinstr(GC_LABEL, label, NULL, NULL);
 }
 
 void printInstr(Instr *instruction) { 
@@ -605,7 +785,10 @@ void printInstr(Instr *instruction) {
         case GC_UMINUS: printf("UMINUS"); break;
         case GC_ASSG: printf("ASSG"); break;
         case GC_GOTO: printf("GOTO"); break;
-        case GC_IF: printf("IF"); break;
+        case IF_EQ: printf("IF EQ"); break;
+        case IF_NE: printf("IF EQ"); break;
+        case IF_GT: printf("IF EQ"); break;
+        case IF_LT: printf("IF EQ"); break;
         case GC_LABEL: printf("LABEL"); break;
         case GC_ENTER: printf("ENTER"); break;
         case GC_LEAVE: printf("LEAVE"); break;

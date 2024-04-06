@@ -1,0 +1,115 @@
+
+.align 2
+.data
+_nl: .asciiz "\n"
+
+.align 2
+.text
+# _println: print out an integer followed by a newline
+_println:
+  li $v0, 1
+  lw $a0, 0($sp)
+  syscall
+  li $v0, 4
+  la $a0, _nl
+  syscall
+  jr $ra
+
+.data
+_u: .space 4
+_x: .space 4
+
+# ENTER _main
+.align 2
+.text
+_main:
+  la $sp, -8($sp) # allocate space for old $fp and $ra
+  sw $fp, 4($sp) # save old $fp
+  sw $ra, 0($sp) # save return address
+  la $fp, 0($sp) # set up frame pointer
+  la $sp, -28($sp) # allocate stack frame
+
+  # __tmp0 = 1
+  li $t0, 1
+  sw $t0, -20($fp)
+
+  # _x = __tmp0
+  lw $t0, -20($fp)
+  sw $t0, _x
+
+  # __tmp1 = 0
+  li $t0, 0
+  sw $t0, -16($fp)
+
+  # _y = __tmp1
+  lw $t0, -16($fp)
+  sw $t0, -28($fp)
+
+  # __tmp2 = 12345
+  li $t0, 12345
+  sw $t0, -12($fp)
+
+  # _u = __tmp2
+  lw $t0, -12($fp)
+  sw $t0, _u
+
+  # __tmp3 = 23456
+  li $t0, 23456
+  sw $t0, -8($fp)
+
+  # _v = __tmp3
+  lw $t0, -8($fp)
+  sw $t0, -24($fp)
+
+  # IF (x > y) GOTO __label_0
+  lw $t0, _x
+  lw $t1, -28($fp)
+  slt $t2, $t1, $t0
+  bne $t2, $0, __label_0
+
+  # PARAM _v
+  lw $t0, -24($fp)
+  la $sp, -4($sp)
+  sw $t0, 0($sp)
+
+  # CALL _println 1
+  jal _println
+  la $sp, 4($sp)
+
+  # GOTO __label_1
+  j __label_1
+
+  # LABEL __label_0
+  __label_0:
+
+  # PARAM _u
+  lw $t0, _u
+  la $sp, -4($sp)
+  sw $t0, 0($sp)
+
+  # CALL _println 1
+  jal _println
+  la $sp, 4($sp)
+
+  # LABEL __label_1
+  __label_1:
+
+  # __tmp4 = 0
+  li $t0, 0
+  sw $t0, -4($fp)
+
+  # LEAVE _main
+  # LEAVE is ignored for CSC 453
+
+  # RETURN __tmp4
+  lw $v0, -4($fp)
+  la $sp, 0($fp)
+  lw $ra, 0($sp)
+  lw $fp, 4($sp)
+  la $sp, 8($sp)
+  jr $ra
+
+.align 2
+.text
+main:
+  j _main
