@@ -579,7 +579,10 @@ void codeGen_func_def(ASTnode *e) {
     Instr* enter = newinstr(GC_ENTER, arg, NULL, NULL);
 
     code_instr(e, enter);
-    codeGen_stmt(e->child0);
+    if (e->child0 != NULL) {
+        codeGen_stmt(e->child0);
+    }
+    //printf("Made it here\n");
 
     // Concatenate AST node's code list with the child node's code list
     if (e->child0->code_hd != NULL && e->child0->code_tl != NULL) {
