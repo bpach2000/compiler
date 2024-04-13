@@ -57,6 +57,7 @@ extern ASTnode* arith_exp();
 extern ASTnode* arith_exp_not_empty();
 extern ASTnode* relop();
 extern void fn_call();
+extern ASTnode* fn_call_or_assignment();
 extern void assg_stmt();
 extern ASTnode* stmt();
 extern ASTnode* if_stmt();

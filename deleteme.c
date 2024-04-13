@@ -118,7 +118,7 @@ ASTnode*  bool_exp() {
 }
 
 ASTnode* arith_exp() {
-    //printf("Inside arith expr %s\n", lexeme);
+    printf("Inside arith expr %s\n", lexeme);
     ASTnode* ast = malloc(sizeof(ASTnode));
     if (curr_tok == ID) {
         ast->ntype = IDENTIFIER;
@@ -127,46 +127,55 @@ ASTnode* arith_exp() {
         //printf("The cur lexeme %s\n", lexeme);
 
         if (curr_tok == LPAREN) {
-            match(LPAREN);
-            opt_expr_list();
-            match(RPAREN);
-            match(SEMI);
+            fn_call();
         } else if (curr_tok == opADD || curr_tok == opSUB || curr_tok == opMUL || curr_tok == opDIV) {
             while (curr_tok == opADD || curr_tok == opSUB || curr_tok == opMUL || curr_tok == opDIV) {
                 // Handle binary arithmetic operators
                 match(curr_tok); // Match the operator
                 if (curr_tok == ID) {
                     match(ID);
+                    if (curr_tok == RPAREN) {
+                        match(RPAREN);
+                    }
                 } else if (curr_tok == INTCON) {
                     match(INTCON);
+                    if (curr_tok == RPAREN) {
+                        match(RPAREN);
+                    }
                 }
             }    
         }
     } else if (curr_tok == INTCON) {
-        //printf("Current lexeme %s\n", lexeme);
+        printf("Current lexeme %s\n", lexeme);
         ast->ntype = INTCONST;
         ast->num = atoi(lexeme);
         match(INTCON);
-        //printf("next lexeme %s\n", lexeme);
+        printf("next lexeme %s\n", lexeme);
 
         while (curr_tok == opADD || curr_tok == opSUB || curr_tok == opMUL || curr_tok == opDIV) {
             // Handle binary arithmetic operators
             match(curr_tok); // Match the operator
             if (curr_tok == ID) {
                 match(ID);
+                if (curr_tok == RPAREN) {
+                    match(RPAREN);
+                }
             } else if (curr_tok == INTCON) {
+                printf("Looskjskjsa lexeme %s\n", lexeme);
                 match(INTCON);
+                printf("cur_tok %s\n", lexeme);
+                if (curr_tok == RPAREN) {
+                    printf("Inside here\n");
+                    match(RPAREN);
+                    printf("You made it here babyyyyy\n");
+                }
             }
         } 
     } else if (curr_tok == LPAREN) {
         match(LPAREN);
         arith_exp();
+        printf("YOU ARE HERE %s\n", lexeme);
         match(RPAREN);
-
-        if (curr_tok == opADD || curr_tok == opSUB || curr_tok == opMUL || curr_tok == opDIV) {
-            match(curr_tok);
-            arith_exp();
-        }
     } else if (curr_tok == opSUB) {
         match(opSUB);
         arith_exp();
@@ -218,7 +227,7 @@ ASTnode* relop() {
 }
 
 ASTnode* fn_call_or_assignment() {
-    //printf("Curr lexeme %s\n", lexeme);
+    printf("Curr lexeme %s\n", lexeme);
     ASTnode* ast = malloc(sizeof(ASTnode));
     char* func_name_or_assg = lexeme;
     match(ID);
@@ -240,7 +249,7 @@ ASTnode* fn_call_or_assignment() {
 
     // Assignment
     } else {
-        //printf("Inside assignment %s\n", lexeme);
+        printf("Inside assignment %s\n", lexeme);
         ast->ntype = ASSG;
         ASTnode* left = malloc(sizeof(ASTnode));
         left->ntype = IDENTIFIER;
@@ -249,7 +258,9 @@ ASTnode* fn_call_or_assignment() {
         left->st_ref = get_symtbl(local_table, left->name, 0);
 
         match(opASSG);
+        printf("YOUUAUAUAUAUUAU CU\n");
         ASTnode* right = arith_exp();
+        printf("YOUUAUAUAUAUUAU CU\n");
         ast->child0 = left;
         ast->child1 = right;
         match(SEMI);
@@ -266,7 +277,7 @@ void fn_call() {
 }
 
 ASTnode* stmt() {
-    //printf("stmt %s\n", lexeme);
+    printf("stmt %s\n", lexeme);
     ASTnode* node = malloc(sizeof(ASTnode));
     node->ntype = STMT_LIST;
     if (curr_tok == kwWHILE) {
@@ -356,7 +367,7 @@ void type() {
 }
 
 ASTnode* id_list() {
-    //printf("id_list lexeme %s\n", lexeme);
+    printf("id_list lexeme %s\n", lexeme);
     if (curr_tok == ID) {
         num_offset_local_var = num_offset_local_var - 4;
         //printf("************ lexeme %s, offset %d\n", lexeme, num_offset_local_var);
