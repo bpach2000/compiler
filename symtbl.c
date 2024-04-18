@@ -53,11 +53,11 @@ SymTable *get_symtbl(SymTable* symTable, char* id, int info) {
     while (current != NULL) {
         //printf("current->name %s and lexeme is %s\n", current->name, id);
         if (strcmp(id, current->name) == 0 && info == current->info) {
+            //printf("The current %s\n", current->name);
             return current; 
         }
         current = current->next;
     }
-
     // We did not find the identifier
     return NULL;
 }

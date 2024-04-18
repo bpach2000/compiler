@@ -55,8 +55,6 @@ ASTnode* opt_expr_list() {
     } else {
         return NULL;
     }
-    
-    //expr_list(); 
 }
 
 void arithop() {
@@ -123,22 +121,51 @@ ASTnode* arith_exp() {
     if (curr_tok == ID) {
         ast->ntype = IDENTIFIER;
         ast->name = lexeme;
+        
+        // store the current lexeme to determine error
+        char* cur_lexeme = lexeme;
+        
         match(ID);
-        //printf("The cur lexeme %s\n", lexeme);
+
+        //printf("The cur lexeme %s\n", cur_lexeme);
 
         if (curr_tok == LPAREN) {
+            //printf("Here %s\n", lexeme);
+            // Check and make sure the function is in the symbol table
+            if (chk_decl_flag && get_symtbl(global_table, cur_lexeme, 1) == NULL) {
+                fprintf(stderr, "ERROR: %s is undeclared on line %d\n", cur_lexeme, current_line);
+                exit(1);
+            }
             match(LPAREN);
             opt_expr_list();
             match(RPAREN);
-            match(SEMI);
+            //match(SEMI);
         } else if (curr_tok == opADD || curr_tok == opSUB || curr_tok == opMUL || curr_tok == opDIV) {
             while (curr_tok == opADD || curr_tok == opSUB || curr_tok == opMUL || curr_tok == opDIV) {
                 // Handle binary arithmetic operators
-                match(curr_tok); // Match the operator
+                //printf("The cur lexeme %s\n", lexeme);
+                int last = curr_tok;
+                match(last); // Match the operator
+
+                // Check for errors
+                if ((last == opADD && curr_tok == opMUL) || (last == opADD && curr_tok == opDIV) \
+                || (last == opSUB && curr_tok == opMUL) || (last == opSUB && curr_tok == opDIV)) {
+                    fprintf(stderr, "ERROR: invalid arithmetic expression on line %d\n", current_line);
+                    exit(1);
+                }
+
                 if (curr_tok == ID) {
                     match(ID);
                 } else if (curr_tok == INTCON) {
                     match(INTCON);
+                } else if (curr_tok == LPAREN) {
+                    //printf("Here %s\n", lexeme);
+                    match(LPAREN);
+                    opt_expr_list();
+                    match(RPAREN);
+                } else if (curr_tok == SEMI) {
+                    fprintf(stderr, "ERROR: invalid arithmetic expression on line %d\n", current_line);
+                    exit(1);
                 }
             }    
         }
@@ -146,16 +173,36 @@ ASTnode* arith_exp() {
         //printf("Current lexeme %s\n", lexeme);
         ast->ntype = INTCONST;
         ast->num = atoi(lexeme);
+
         match(INTCON);
         //printf("next lexeme %s\n", lexeme);
 
         while (curr_tok == opADD || curr_tok == opSUB || curr_tok == opMUL || curr_tok == opDIV) {
             // Handle binary arithmetic operators
-            match(curr_tok); // Match the operator
+            //printf("The cur lexeme %s\n", lexeme);
+            int last = curr_tok;
+            match(last); // Match the operator
+
+            // Check for errors
+            if ((last == opADD && curr_tok == opMUL) || (last == opADD && curr_tok == opDIV) \
+            || (last == opSUB && curr_tok == opMUL) || (last == opSUB && curr_tok == opDIV)) {
+                fprintf(stderr, "ERROR: invalid arithmetic expression on line %d\n", current_line);
+                exit(1);
+            }
+
+
             if (curr_tok == ID) {
+                // Check and make sure variable is valid
+                if (get_symtbl(global_table, lexeme, 0) == NULL || get_symtbl(local_table, lexeme, 0) == NULL) {
+                    fprintf(stderr, "ERROR: %s is not a global or local variable on line %d\n", lexeme, current_line);
+                    exit(1);
+                }
                 match(ID);
             } else if (curr_tok == INTCON) {
                 match(INTCON);
+            } else if (curr_tok == SEMI) {
+                fprintf(stderr, "ERROR: invalid arithmetic expression on line %d\n", current_line);
+                exit(1);
             }
         } 
     } else if (curr_tok == LPAREN) {
@@ -174,7 +221,6 @@ ASTnode* arith_exp() {
         fprintf(stderr, "ERROR: incomplete boolean expression on line %d\n", current_line);
         exit(1);
     }
-
     return ast;
 }
 
