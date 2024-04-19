@@ -49,7 +49,7 @@ void match(Token expected) {
 }
 
 ASTnode* opt_expr_list() {
-    //printf("opt_expr_list\n");
+    //printf("opt_expr_list, lexeme %s\n", lexeme);
     if (curr_tok == ID || curr_tok == INTCON || curr_tok == LPAREN || curr_tok == opSUB) {
         return expr_list();
     } else {
@@ -131,6 +131,15 @@ ASTnode* arith_exp() {
             match(LPAREN);
             opt_expr_list();
             match(RPAREN);
+
+        // Check if local variable is in the local or global scope
+        } else if (chk_decl_flag) {
+            if (get_symtbl(global_table, cur_lexeme, 0) == NULL) {
+                if (get_symtbl(local_table, cur_lexeme, 0) == NULL) {
+                    fprintf(stderr, "ERROR: %s is not a global or local variable on LINE %d\n", cur_lexeme, current_line);
+                    exit(1);
+                }
+            }
         }
 
         // Check continuation of arithmetic expresson
@@ -150,18 +159,16 @@ ASTnode* arith_exp() {
 
                 if (curr_tok == ID) {
                     //printf("ID: %s\n", lexeme);
-                    match(ID);
+                    arith_exp();
+                    //match(ID);
                 } else if (curr_tok == INTCON) {
                     //printf("INTCON: %s\n", lexeme);
                     match(INTCON);
                 } else if (curr_tok == LPAREN) {
-                    //printf("Should be an LPAREN %s\n", lexeme);
-                    match(LPAREN);
-                    //printf("Entering new opt_expr_list() with lexeme %s\n", lexeme);
-                    opt_expr_list();
-                    //printf("Exiting new opt_expr_list()\n");
-                    //printf("This should be a RPAREN %s\n", lexeme);
-                    match(RPAREN);
+                    arith_exp();
+                    // match(LPAREN);
+                    // opt_expr_list();
+                    // match(RPAREN);
                 } else if (curr_tok == SEMI) {
                     fprintf(stderr, "ERROR: invalid arithmetic expression on line %d\n", current_line);
                     exit(1);
@@ -187,23 +194,15 @@ ASTnode* arith_exp() {
             }
 
             if (curr_tok == ID) {
-                if (chk_decl_flag) {
-                    if (get_symtbl(global_table, lexeme, 0) == NULL) {
-                        if (get_symtbl(local_table, lexeme, 0) == NULL) {
-                            fprintf(stderr, "ERROR: %s is not a global or local variable on LINE %d\n", lexeme, current_line);
-                            exit(1);
-                        }
-                    }
-
-                }
-                match(ID);
+                arith_exp();
             } else if (curr_tok == INTCON) {
                 match(INTCON);
             } else if (curr_tok == LPAREN) {
+                    arith_exp();
                     //printf("Here %s\n", lexeme);
-                    match(LPAREN);
-                    opt_expr_list();
-                    match(RPAREN);
+                    // match(LPAREN);
+                    // opt_expr_list();
+                    // match(RPAREN);
             } else if (curr_tok == SEMI) {
                 fprintf(stderr, "ERROR: invalid arithmetic expression on line %d\n", current_line);
                 exit(1);

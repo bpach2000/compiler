@@ -4,7 +4,7 @@ int g(int q, int p) {}
 
 int f() {
     int x, y, u, v, w;
-    x = l() + y * -u / (v - -w) + x - (y * l() + u) - y;
+    x = l() + 2 * -2 / (4 - -6) + 7 - (8 * l() + u) - y;
 
     w = g(-y, (x + y));
     u = g((x + y), w * y) - w;

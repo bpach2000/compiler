@@ -1,5 +1,5 @@
 /* ID with incorrect type in function argument list */
-int c;
+int d;
 
 int f(int x, int y, int z) {
     int w;
