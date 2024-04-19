@@ -50,7 +50,7 @@ void match(Token expected) {
 
 ASTnode* opt_expr_list() {
     //printf("opt_expr_list\n");
-    if (curr_tok == ID || curr_tok == INTCON) {
+    if (curr_tok == ID || curr_tok == INTCON || curr_tok == LPAREN || curr_tok == opSUB) {
         return expr_list();
     } else {
         return NULL;
@@ -104,19 +104,13 @@ ASTnode*  bool_exp() {
        logical_op();
        bool_exp();
     }
-    //printf("curr lexeme %s\n", lexeme);
-    // if (curr_tok == ID || curr_tok == INTCON || curr_tok == LPAREN || curr_tok == opSUB) {
-    //     //printf("Made it inside here\n");
-    //     bool_exp();
-    //     logical_op();
-    //     bool_exp();
-    // }
 
     return operation;
 }
 
 ASTnode* arith_exp() {
-    //printf("Inside arith expr %s\n", lexeme);
+    printf("Inside arith expr %s\n", lexeme);
+    //printf("Current line %d\n", current_line);
     ASTnode* ast = malloc(sizeof(ASTnode));
     if (curr_tok == ID) {
         ast->ntype = IDENTIFIER;
@@ -124,13 +118,11 @@ ASTnode* arith_exp() {
         
         // store the current lexeme to determine error
         char* cur_lexeme = lexeme;
-        
+        //printf("This is the ID %s\n", lexeme);
         match(ID);
 
-        //printf("The cur lexeme %s\n", cur_lexeme);
-
+        // Check for a function call
         if (curr_tok == LPAREN) {
-            //printf("Here %s\n", lexeme);
             // Check and make sure the function is in the symbol table
             if (chk_decl_flag && get_symtbl(global_table, cur_lexeme, 1) == NULL) {
                 fprintf(stderr, "ERROR: %s is undeclared on line %d\n", cur_lexeme, current_line);
@@ -139,15 +131,17 @@ ASTnode* arith_exp() {
             match(LPAREN);
             opt_expr_list();
             match(RPAREN);
-            //match(SEMI);
-        } else if (curr_tok == opADD || curr_tok == opSUB || curr_tok == opMUL || curr_tok == opDIV) {
+        }
+
+        // Check continuation of arithmetic expresson
+        //} else 
+        if (curr_tok == opADD || curr_tok == opSUB || curr_tok == opMUL || curr_tok == opDIV) {
             while (curr_tok == opADD || curr_tok == opSUB || curr_tok == opMUL || curr_tok == opDIV) {
-                // Handle binary arithmetic operators
-                //printf("The cur lexeme %s\n", lexeme);
                 int last = curr_tok;
+                //printf("Operator %s\n", lexeme);
                 match(last); // Match the operator
 
-                // Check for errors
+                // Check for errors - should not have -*, +*, -/, +/
                 if ((last == opADD && curr_tok == opMUL) || (last == opADD && curr_tok == opDIV) \
                 || (last == opSUB && curr_tok == opMUL) || (last == opSUB && curr_tok == opDIV)) {
                     fprintf(stderr, "ERROR: invalid arithmetic expression on line %d\n", current_line);
@@ -155,13 +149,18 @@ ASTnode* arith_exp() {
                 }
 
                 if (curr_tok == ID) {
+                    //printf("ID: %s\n", lexeme);
                     match(ID);
                 } else if (curr_tok == INTCON) {
+                    //printf("INTCON: %s\n", lexeme);
                     match(INTCON);
                 } else if (curr_tok == LPAREN) {
-                    //printf("Here %s\n", lexeme);
+                    //printf("Should be an LPAREN %s\n", lexeme);
                     match(LPAREN);
+                    //printf("Entering new opt_expr_list() with lexeme %s\n", lexeme);
                     opt_expr_list();
+                    //printf("Exiting new opt_expr_list()\n");
+                    //printf("This should be a RPAREN %s\n", lexeme);
                     match(RPAREN);
                 } else if (curr_tok == SEMI) {
                     fprintf(stderr, "ERROR: invalid arithmetic expression on line %d\n", current_line);
@@ -175,31 +174,33 @@ ASTnode* arith_exp() {
         ast->num = atoi(lexeme);
 
         match(INTCON);
-        //printf("next lexeme %s\n", lexeme);
 
         while (curr_tok == opADD || curr_tok == opSUB || curr_tok == opMUL || curr_tok == opDIV) {
-            // Handle binary arithmetic operators
-            //printf("The cur lexeme %s\n", lexeme);
             int last = curr_tok;
             match(last); // Match the operator
 
-            // Check for errors
+            // Check for errors - should not have -*, +*, -/, +/
             if ((last == opADD && curr_tok == opMUL) || (last == opADD && curr_tok == opDIV) \
             || (last == opSUB && curr_tok == opMUL) || (last == opSUB && curr_tok == opDIV)) {
                 fprintf(stderr, "ERROR: invalid arithmetic expression on line %d\n", current_line);
                 exit(1);
             }
 
-
             if (curr_tok == ID) {
-                // Check and make sure variable is valid
-                if (get_symtbl(global_table, lexeme, 0) == NULL || get_symtbl(local_table, lexeme, 0) == NULL) {
-                    fprintf(stderr, "ERROR: %s is not a global or local variable on line %d\n", lexeme, current_line);
-                    exit(1);
+                if (chk_decl_flag) {
+                    if (get_symtbl(global_table, lexeme, 0) == NULL || get_symtbl(local_table, lexeme, 0) == NULL) {
+                        fprintf(stderr, "ERROR: %s is not a global or local variable on LINE %d\n", lexeme, current_line);
+                        exit(1);
+                    }
                 }
                 match(ID);
             } else if (curr_tok == INTCON) {
                 match(INTCON);
+            } else if (curr_tok == LPAREN) {
+                    //printf("Here %s\n", lexeme);
+                    match(LPAREN);
+                    opt_expr_list();
+                    match(RPAREN);
             } else if (curr_tok == SEMI) {
                 fprintf(stderr, "ERROR: invalid arithmetic expression on line %d\n", current_line);
                 exit(1);

@@ -51,7 +51,7 @@ SymTable *get_symtbl(SymTable* symTable, char* id, int info) {
     SymTable* current = symTable;
 
     while (current != NULL) {
-        //printf("current->name %s and lexeme is %s\n", current->name, id);
+        //printf("current->name %s and lexeme is %s and info is %d\n", current->name, id, current->info);
         if (strcmp(id, current->name) == 0 && info == current->info) {
             //printf("The current %s\n", current->name);
             return current; 
