@@ -109,7 +109,7 @@ ASTnode*  bool_exp() {
 }
 
 ASTnode* arith_exp() {
-    printf("Inside arith expr %s\n", lexeme);
+    //printf("Inside arith expr %s\n", lexeme);
     //printf("Current line %d\n", current_line);
     ASTnode* ast = malloc(sizeof(ASTnode));
     if (curr_tok == ID) {
@@ -188,10 +188,13 @@ ASTnode* arith_exp() {
 
             if (curr_tok == ID) {
                 if (chk_decl_flag) {
-                    if (get_symtbl(global_table, lexeme, 0) == NULL || get_symtbl(local_table, lexeme, 0) == NULL) {
-                        fprintf(stderr, "ERROR: %s is not a global or local variable on LINE %d\n", lexeme, current_line);
-                        exit(1);
+                    if (get_symtbl(global_table, lexeme, 0) == NULL) {
+                        if (get_symtbl(local_table, lexeme, 0) == NULL) {
+                            fprintf(stderr, "ERROR: %s is not a global or local variable on LINE %d\n", lexeme, current_line);
+                            exit(1);
+                        }
                     }
+
                 }
                 match(ID);
             } else if (curr_tok == INTCON) {
@@ -265,13 +268,13 @@ ASTnode* relop() {
 }
 
 ASTnode* fn_call_or_assignment() {
-    //printf("Curr lexeme %s\n", lexeme);
+    //printf("fn_call_or_assignment() Curr lexeme %s\n", lexeme);
     ASTnode* ast = malloc(sizeof(ASTnode));
     char* func_name_or_assg = lexeme;
     match(ID);
     // Function call
     if (curr_tok == LPAREN) {
-        ast->ntype= FUNC_CALL;
+        
         match(LPAREN);
         if (local == 1 && chk_decl_flag != 0) {
             if (symtbl_look_up(global_table, func_name_or_assg) == 0) {
