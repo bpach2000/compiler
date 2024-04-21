@@ -1,11 +1,11 @@
-/* NUMBER OF FUNCTION ARGS OFF TODOOOOOOOOOO */
-int d;
+/* astgen: associativity of * and / operators together
+   with parenthesized subexpressions */
 
-int f(int x, int y, int z) {
-    int w;
-    w = x*y+z;
-}
+int f() {
+    int x, y, u, v, w;
 
-int main() {
-    f(0, 2*d-1);    /* << f is of the wrong type */
+    x = x * y / (u * v) / w;
+    x = x * y / ((u * v) / w);
+    y = x / (y * u / v) * w;
+    y = x / ((y * u / v) * w);
 }

@@ -30,6 +30,7 @@ int num_local_var_func_def = 0;
 int num_offset_local_var = 0;
 int num_offset_formals = 4;
 int num_args_func_call = 0;
+int num_args_fn_call = 0;
 
 /* match() checks whether the current token matches what is expected*/
 void match(Token expected) {
@@ -80,6 +81,7 @@ void logical_op() {
 ASTnode* expr_list() {
     //printf("expr_list, %s\n", lexeme);
     ASTnode* ast = malloc(sizeof(ASTnode));
+    num_args_fn_call++;
     ast->ntype = EXPR_LIST;
     ast->child0 = arith_exp();
     if (curr_tok == COMMA) {
@@ -199,10 +201,6 @@ ASTnode* arith_exp() {
                 match(INTCON);
             } else if (curr_tok == LPAREN) {
                     arith_exp();
-                    //printf("Here %s\n", lexeme);
-                    // match(LPAREN);
-                    // opt_expr_list();
-                    // match(RPAREN);
             } else if (curr_tok == SEMI) {
                 fprintf(stderr, "ERROR: invalid arithmetic expression on line %d\n", current_line);
                 exit(1);
@@ -284,7 +282,16 @@ ASTnode* fn_call_or_assignment() {
         ast->name = func_name_or_assg;
         ast->st_ref = get_symtbl(global_table, ast->name, 1);
         ast->child0 = opt_expr_list();
-        match(RPAREN);
+        match(RPAREN); 
+
+        if (local == 1 && chk_decl_flag) {
+            if (num_args_fn_call != get_symtbl(global_table, func_name_or_assg, 1)->args) {
+                fprintf(stderr, "ERROR: number of arguements for %s don't match at line %d\n", func_name_or_assg, current_line);
+                exit(1);
+            }
+        }
+
+        num_args_fn_call = 0;
         match(SEMI);
 
     // Assignment
@@ -504,7 +511,6 @@ ASTnode* opt_stmt_list() {
 }
 
 void func_defn() {
-    //printf("func_defn\n");
     ASTnode* ast = malloc(sizeof(ASTnode));
     ast->ntype = FUNC_DEF;
     ast->st_ref = symtbl_add(prev, 1, 0, 0, 0, 0, 0); // 1 for function (global scope)
@@ -566,7 +572,6 @@ void var_decl_prog() {
 
 void prog() {
     while (curr_tok == kwINT) {
-        //printf("prog\n");
         type();
         prev = lexeme;
         //printf("%s\n", lexeme);
