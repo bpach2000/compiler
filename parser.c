@@ -70,12 +70,16 @@ void arithop() {
     }
 }
 
-void logical_op() {
+ASTnode* logical_op() {
+    ASTnode* ast = malloc(sizeof(ASTnode));
     if (curr_tok == opAND) {
+        ast->ntype = AND;
         match(opAND);
     } else {
+        ast->ntype = OR;
         match(opOR);
     }
+    return ast;
 }
 
 ASTnode* expr_list() {
@@ -94,33 +98,62 @@ ASTnode* expr_list() {
     return ast;
 }
 
-ASTnode*  bool_exp() {
-    //printf("bool_exp\n");
+ASTnode* relational_exp() {
     ASTnode* left = arith_exp();
-    ASTnode* operation = relop();
-    ASTnode* right = arith_exp();
-    operation->child0 = left;
-    operation->child1 = right;
-
-    if (curr_tok == opAND || curr_tok == opOR) {
-       logical_op();
-       bool_exp();
+    while (curr_tok == opEQ || curr_tok == opNE || curr_tok == opLT || curr_tok == opLE || curr_tok == opGT || curr_tok == opGE) {
+        ASTnode* operation = relop();
+        ASTnode* right = arith_exp();
+        operation->child0 = left;
+        operation->child1 = right;
+        left = operation;
     }
-
-    return operation;
+    return left;
 }
 
-ASTnode* arith_exp() {
-    //printf("Inside arith expr %s\n", lexeme);
-    //printf("Current line %d\n", current_line);
+ASTnode* logical_and_exp() {
+    ASTnode* left = relational_exp(); 
+    while (curr_tok == opAND) {
+        ASTnode* operation = logical_op(); 
+        ASTnode* right = relational_exp(); 
+        operation->child0 = left;
+        operation->child1 = right;
+        left = operation; 
+    }
+    return left;
+}
+
+ASTnode* logical_or_exp() {
+    ASTnode* left = logical_and_exp(); 
+    while (curr_tok == opOR) {
+        ASTnode* operation = logical_op(); 
+        ASTnode* right = logical_and_exp();
+        operation->child0 = left;
+        operation->child1 = right;
+        left = operation;
+    }
+    return left;
+}
+
+ASTnode*  bool_exp() {
+    return logical_or_exp();
+}
+
+ASTnode *mk_ast_node(int type, char* lexeme) {
     ASTnode* ast = malloc(sizeof(ASTnode));
+    ast->ntype = type;
+    ast->name = lexeme;
+    return ast;
+}
+
+// arith4 -> ID | INT | FUNC_CALL | ( arith ) | -arith
+ASTnode *arith_exp4() {
+    ASTnode* ast = malloc(sizeof(ASTnode));
+    // ID
     if (curr_tok == ID) {
-        ast->ntype = IDENTIFIER;
         ast->name = lexeme;
         
         // store the current lexeme to determine error
         char* cur_lexeme = lexeme;
-        //printf("This is the ID %s\n", lexeme);
         match(ID);
 
         // Check for a function call
@@ -130,8 +163,11 @@ ASTnode* arith_exp() {
                 fprintf(stderr, "ERROR: %s is undeclared on line %d\n", cur_lexeme, current_line);
                 exit(1);
             }
+            ast->ntype = FUNC_CALL;
+            ast->st_ref = get_symtbl(global_table, ast->name, 1);
+            // Function call
             match(LPAREN);
-            opt_expr_list();
+            ast->child0 = opt_expr_list();
             match(RPAREN);
 
         // Check if local variable is in the local or global scope
@@ -142,87 +178,87 @@ ASTnode* arith_exp() {
                     exit(1);
                 }
             }
-        }
-
-        // Check continuation of arithmetic expresson
-        //} else 
-        if (curr_tok == opADD || curr_tok == opSUB || curr_tok == opMUL || curr_tok == opDIV) {
-            while (curr_tok == opADD || curr_tok == opSUB || curr_tok == opMUL || curr_tok == opDIV) {
-                int last = curr_tok;
-                //printf("Operator %s\n", lexeme);
-                match(last); // Match the operator
-
-                // Check for errors - should not have -*, +*, -/, +/
-                if ((last == opADD && curr_tok == opMUL) || (last == opADD && curr_tok == opDIV) \
-                || (last == opSUB && curr_tok == opMUL) || (last == opSUB && curr_tok == opDIV)) {
-                    fprintf(stderr, "ERROR: invalid arithmetic expression on line %d\n", current_line);
-                    exit(1);
-                }
-
-                if (curr_tok == ID) {
-                    //printf("ID: %s\n", lexeme);
-                    arith_exp();
-                    //match(ID);
-                } else if (curr_tok == INTCON) {
-                    //printf("INTCON: %s\n", lexeme);
-                    match(INTCON);
-                } else if (curr_tok == LPAREN) {
-                    arith_exp();
-                    // match(LPAREN);
-                    // opt_expr_list();
-                    // match(RPAREN);
-                } else if (curr_tok == SEMI) {
-                    fprintf(stderr, "ERROR: invalid arithmetic expression on line %d\n", current_line);
-                    exit(1);
-                }
-            }    
+            ast->st_ref = get_symtbl(local_table, ast->name, 0);
+            ast->ntype = IDENTIFIER;
         }
     } else if (curr_tok == INTCON) {
         //printf("Current lexeme %s\n", lexeme);
         ast->ntype = INTCONST;
         ast->num = atoi(lexeme);
-
         match(INTCON);
-
-        while (curr_tok == opADD || curr_tok == opSUB || curr_tok == opMUL || curr_tok == opDIV) {
-            int last = curr_tok;
-            match(last); // Match the operator
-
-            // Check for errors - should not have -*, +*, -/, +/
-            if ((last == opADD && curr_tok == opMUL) || (last == opADD && curr_tok == opDIV) \
-            || (last == opSUB && curr_tok == opMUL) || (last == opSUB && curr_tok == opDIV)) {
-                fprintf(stderr, "ERROR: invalid arithmetic expression on line %d\n", current_line);
-                exit(1);
-            }
-
-            if (curr_tok == ID) {
-                arith_exp();
-            } else if (curr_tok == INTCON) {
-                match(INTCON);
-            } else if (curr_tok == LPAREN) {
-                    arith_exp();
-            } else if (curr_tok == SEMI) {
-                fprintf(stderr, "ERROR: invalid arithmetic expression on line %d\n", current_line);
-                exit(1);
-            }
-        } 
     } else if (curr_tok == LPAREN) {
         match(LPAREN);
-        arith_exp();
+        ast = arith_exp();
         match(RPAREN);
-
-        if (curr_tok == opADD || curr_tok == opSUB || curr_tok == opMUL || curr_tok == opDIV) {
-            match(curr_tok);
-            arith_exp();
-        }
     } else if (curr_tok == opSUB) {
         match(opSUB);
-        arith_exp();
+        ast->ntype = UMINUS;
+        ast->child0 = arith_exp4();
     } else {
         fprintf(stderr, "ERROR: incomplete boolean expression on line %d\n", current_line);
         exit(1);
     }
+    // print_ast(ast);
+    // printf("\n");
     return ast;
+}
+
+// arith3 -> * arith4 arith3 | / arith4 arith3 | epsilon
+ASTnode *arith_exp3(ASTnode *left) {
+    ASTnode *right = malloc(sizeof(ASTnode));
+    ASTnode *ast0 = malloc(sizeof(ASTnode));
+    if (curr_tok == opMUL) {
+        match(opMUL);
+        right = arith_exp4();
+        ast0->ntype = MUL;
+        ast0->child0 = left;
+        ast0->child1 = right;
+        return arith_exp3(ast0);
+    } else if (curr_tok == opDIV) {
+        match(opDIV);
+        right = arith_exp4();
+        ast0->ntype = DIV;
+        ast0->child0 = left;
+        ast0->child1 = right;
+        return arith_exp3(ast0);
+    }
+    return left;
+}
+
+// arith2 -> arith4 arith3
+ASTnode *arith_exp2() {
+    ASTnode *left = malloc(sizeof(ASTnode));
+    left = arith_exp4();
+    return arith_exp3(left);
+}
+
+// arith1 -> + arith2 arith1 | - arith2 arith1 | epsilon
+ASTnode *arith_exp1(ASTnode *left) {
+    ASTnode *right = malloc(sizeof(ASTnode));
+    ASTnode *ast0 = malloc(sizeof(ASTnode));
+    if (curr_tok == opADD) {
+        match(opADD);
+        right = arith_exp2();
+        ast0->ntype = ADD;
+        ast0->child0 = left;
+        ast0->child1 = right;
+        return arith_exp1(ast0);
+    } else if (curr_tok == opSUB) {
+        match(opSUB);
+        right = arith_exp2();
+        ast0->ntype = SUB;
+        ast0->child0 = left;
+        ast0->child1 = right;
+        return arith_exp1(ast0);
+    }
+    return left;
+}
+
+// arith -> arith2 arith1
+ASTnode *arith_exp() {
+    ASTnode *left = malloc(sizeof(ASTnode));
+    left = arith_exp2();
+    return arith_exp1(left);
 }
 
 ASTnode* relop() {
