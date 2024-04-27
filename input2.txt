@@ -1,4 +1,9 @@
+int f(int x, int y, int z) {
+    int w;
+    w = x*y+z;
+}
+
 int main() {
-    int x;
-    y = x + 1;
+    int f, g, h;
+    f(0, 1, 2);    /* << f is of the wrong type */
 }

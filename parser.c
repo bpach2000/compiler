@@ -307,11 +307,17 @@ ASTnode* fn_call_or_assignment() {
     match(ID);
     // Function call
     if (curr_tok == LPAREN) {
-        
         match(LPAREN);
         if (local == 1 && chk_decl_flag != 0) {
+            // First check and make sure that function has not already been declared locally as a variable
+             if (symtbl_look_up(local_table, func_name_or_assg) != 0) {
+                fprintf(stderr, "ERROR: mismatched types for %s at line %d\n", func_name_or_assg, current_line);
+                exit(1);
+            }
+
+            // Make sure function has been declared
             if (symtbl_look_up(global_table, func_name_or_assg) == 0) {
-                fprintf(stderr, "ERROR: Undeclared function %s called at line %d\n", lexeme, current_line);
+                fprintf(stderr, "ERROR: Undeclared function %s called at line %d\n", func_name_or_assg, current_line);
                 exit(1);
             }
         } 
