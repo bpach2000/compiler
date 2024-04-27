@@ -339,6 +339,12 @@ ASTnode* fn_call_or_assignment() {
         left->name = func_name_or_assg;
         // Look in local scope first
         left->st_ref = get_symtbl(local_table, left->name, 0);
+        if (chk_decl_flag) {
+            if (get_symtbl(local_table, left->name, 0) == NULL && get_symtbl(global_table, left->name, 0) == NULL) {
+                fprintf(stderr, "ERROR: %s is undeclared at line %d\n", func_name_or_assg, current_line);
+                exit(1);
+            }
+        }
 
         match(opASSG);
         ASTnode* right = arith_exp();
