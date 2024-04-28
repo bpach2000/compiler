@@ -85,7 +85,7 @@ ASTnode* logical_op() {
 ASTnode* expr_list() {
     //printf("expr_list, %s\n", lexeme);
     ASTnode* ast = malloc(sizeof(ASTnode));
-    num_args_fn_call++;
+    // num_args_fn_call++;
     ast->ntype = EXPR_LIST;
     ast->child0 = arith_exp();
     if (curr_tok == COMMA) {
@@ -95,6 +95,7 @@ ASTnode* expr_list() {
         }
         ast->child1 = expr_list();
     }
+    num_args_fn_call++;
     return ast;
 }
 
@@ -158,6 +159,12 @@ ASTnode *arith_exp4() {
 
         // Check for a function call
         if (curr_tok == LPAREN) {
+            // Make sure the function name is not already a local variable
+            if (chk_decl_flag && get_symtbl(local_table, cur_lexeme, 0) != NULL) {
+                fprintf(stderr, "ERROR: %s is of the wrong type on line %d\n", cur_lexeme, current_line);
+                exit(1);
+            }
+
             // Check and make sure the function is in the symbol table
             if (chk_decl_flag && get_symtbl(global_table, cur_lexeme, 1) == NULL) {
                 fprintf(stderr, "ERROR: %s is undeclared on line %d\n", cur_lexeme, current_line);
@@ -169,6 +176,13 @@ ASTnode *arith_exp4() {
             match(LPAREN);
             ast->child0 = opt_expr_list();
             match(RPAREN);
+            if (chk_decl_flag) {
+                if (ast->st_ref->args != num_args_fn_call) {
+                    fprintf(stderr, "ERROR: need %d arguments, supplying %d on LINE %d\n", ast->st_ref->local_var_num, num_args_fn_call, current_line);
+                    exit(1);
+                }
+            }
+            num_args_fn_call = 0; // reset the number of arguements for function
 
         // Check if local variable is in the local or global scope
         } else if (chk_decl_flag) {
@@ -560,6 +574,7 @@ ASTnode* opt_stmt_list() {
 
 void func_defn() {
     ASTnode* ast = malloc(sizeof(ASTnode));
+    //printf("function %s\n", prev);
     ast->ntype = FUNC_DEF;
     ast->st_ref = symtbl_add(prev, 1, 0, 0, 0, 0, 0); // 1 for function (global scope)
     ast->name = prev;
@@ -569,6 +584,7 @@ void func_defn() {
     ast->num = num_args_func_def;
     ast->st_ref->args = num_args_func_def;
     num_args_func_def = 0;
+    //printf("ast->st_ref->args %d\n", ast->st_ref->args);
     match(RPAREN);
     match(LBRACE);
     opt_var_decls();
