@@ -1,11 +1,15 @@
-/* function call to a non-function ID */
+/* astgen: statements involving nested function calls */
 
-int f(int x, int y, int z) {
-    int w;
-    w = x*y+z;
+int x, y;
+
+int f() {
+    f();
 }
 
-int main() {
-    int f, g, h;
-    g = f(0, 1, 2);    /* << f is of the wrong type */
+int g(int x) {
+    g(f());
+}
+
+int h(int x, int y, int z) {
+    h(g(x-1), f(), h(0,z*2,f()));
 }

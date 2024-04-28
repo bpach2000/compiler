@@ -257,7 +257,7 @@ ASTnode *arith_exp1(ASTnode *left) {
         ast0->child0 = left;
         ast0->child1 = right;
         return arith_exp1(ast0);
-    } else if (curr_tok == opSUB) {
+    } else if (curr_tok == opSUB) { 
         match(opSUB);
         right = arith_exp2();
         ast0->ntype = SUB;
